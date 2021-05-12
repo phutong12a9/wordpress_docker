@@ -1,0 +1,135 @@
+version: "3"
+
+#NETWORK
+#Tạo mạng kết nối
+networks:
+  # Tên mạng kết nối                                              
+  my_network:
+    # Loại mạng kết nối                                             
+    driver: bridge                                        
+
+#VOLUME
+# Tạo ổ đĩa
+volumes:   
+  # Tên ổ đĩa                                               
+  dir-site: 
+    # Thiết lập trên local                                              
+    driver: local  
+    # Nơi mount ổ đĩa                                       
+    driver_opts:
+      device: .  
+       # Bind                                         
+      type: bind                                         
+      o: bind
+#SERVICE
+# Các Dịch Vụ 
+services:                                                 
+  # container php
+  # Tên container php
+  wp-php:
+    # Đặt tên container php
+    container_name: php  
+    # Build Docker file                                 
+    build:
+      # Dockerfile php
+      dockerfile: Dockerfile   
+      # Địa chỉ chứa Dockerfile                           
+      context: ./php/   
+    # Đặt tên host cho container                                  
+    hostname: php   
+    # File thiết lập môi trường php                                     
+    env_file: ./.env  
+    # Luôn luôn khởi tạo lại                                    
+    restart: always
+    # Kết nối với mạng chung
+    networks:
+      - my_network  
+    # Mount volume                                      
+    volumes:
+      # Nơi chứa source code 
+      - ./code:/var/www/html 
+      # File cấu hình Wordpress                             
+      - ./wp-config.php:/var/www/html/wp-config.php  
+      # Quản lý media wordpress bằng thư mục uploads     
+      - ./uploads:/var/www/html/wp-content/uploads        
+  #container nginx
+  # Tên container nginx
+  wp-nginx:    
+    # Pull web server nginx                                           
+    image: nginx:latest   
+    # Thư mục làm việc mặc định                                
+    working_dir: /var/www/html   
+    # Cổng                         
+    ports:   
+        # Cổng kết nối http://localhost:1234                                             
+        - '1234:80'                                       
+        - '443:443'   
+    # Tạo ổ đĩa          
+    volumes:     
+        # File cấu hình nginx                                         
+        - ./nginx:/etc/nginx/conf.d   
+        # Lấy các log nginx khi chạy                    
+        - ./logs/nginx:/var/log/nginx  
+        # Nơi chứa source code                   
+        - ./code:/var/www/html  
+    # Mạng kết nối                          
+    networks:   
+      # Kết nối vào mạng chung                                          
+      - my_network 
+    # Luôn luôn khởi động lại                                       
+    restart: always                                      
+
+  #container mysql
+  wp-mysql:        
+    # Đặt tên container mysql                                       
+    container_name: wp-mysql   
+    # Pull mysql                           
+    image: "mysql:latest"   
+    # Đặt tên host mysql                              
+    hostname: mysql  
+    # Luôn luôn khởi động                                     
+    restart: always   
+    # Biến môi trường                                    
+    env_file: ./.env                                      
+    networks:
+      # Kết nối mạng chung
+      - my_network
+    volumes:
+      # import database wordpress
+      - ./wordpress.sql:/docker-entrypoint-initdb.d/wordpress.sql  
+    environment:
+      # Khởi tạo table wordpress
+      MYSQL_ROOT_PASSWORD: ${ROOT_PASSWORD}
+      MYSQL_USER: ${USER}
+      MYSQL_PASSWORD: ${PASSWORD}
+      MYSQL_DATABASE: ${DATABASE}                          
+    command: 
+      # Cấu hình mysql
+      - '--default-authentication-plugin=mysql_native_password'  
+    ports: 
+      # Cổng kết nối mysql bằng cổng 3308
+      - "3308:3306"                                       
+  #container phpmyadmin
+  wp-phpmyadmin:                                          
+    depends_on:
+      # Phụ thuộc vào container mysql
+      - wp-mysql    
+    # Tên container phpmyadmin                                      
+    container_name: wp-phpmyadmin  
+    # Pull phpmyadmin                       
+    image: "phpmyadmin/phpmyadmin"  
+    # Đặt tên host                       
+    hostname: phpmyadmin
+    # Luôn luôn khởi động                                  
+    restart: always  
+    # Biến môi trường                                     
+    env_file: ./.env                                      
+    ports: 
+      # Cổng kết nối http://localhost:8080 để chạy phpmyadmin
+      - "8080:80"                                         
+    networks: 
+      # Kết nối mạng chung
+      - my_network
+    # Thiết lập môi trường làm việc cho phpmyadmin
+    environment: 
+      PMA_HOST: ${HOST}                                  
