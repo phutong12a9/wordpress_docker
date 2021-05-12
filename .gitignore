@@ -1,0 +1,23 @@
+
+
+#ignore db
+db/*
+
+#ignore uploads
+uploads/*
+
+#ignore .env
+.env 
+
+#ignore folder log
+logs/*
+
+#ingrone wp-config.php
+wp-config.php
+
+# ignore log files and databases
+# *.log
+# *.sql
+# *.sqlite
+
+
