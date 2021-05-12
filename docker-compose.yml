@@ -72,6 +72,8 @@ services:
         - ./logs/nginx:/var/log/nginx  
         # Nơi chứa source code                   
         - ./code:/var/www/html  
+        
+        - ./uploads/:/var/www/html/wp-content/uploads 
     # Mạng kết nối                          
     networks:   
       # Kết nối vào mạng chung                                          
